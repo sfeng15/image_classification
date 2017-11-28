@@ -1,23 +1,23 @@
-# UNFINISH
+# UNFINISH ??
 import numpy as np
 import tensorflow as tf
 
+
 class Vgg16(object):
-    def __init__(self,rows,cols):
+    def __init__(self, rows, cols):
 
         # Create session
         self.session = tf.Session()
-        self.x_placeholder = tf.placeholder(tf.float32, [None, rows,cols,3])
+        self.x_placeholder = tf.placeholder(tf.float32, [None, rows, cols, 3])
         self.y_placeholder = tf.placeholder(tf.float32, [None, 1])
         self.learning_rate_placeholder = tf.placeholder(tf.float32, [])
-        self.keep_prob_placeholder=tf.placeholder(tf.float32,[])
+        self.keep_prob_placeholder = tf.placeholder(tf.float32, [])
 
         # Build graph.
-        self.z_mean = self.build(self.x_placeholder)
+        self.outputs_tensor = self.build(self.x_placeholder,self.keep_prob_placeholder)
 
         # Setup loss tensor, predict_tensor, update_op_tensor
-        self.loss_tensor = self.loss(self.outputs_tensor, self.x_placeholder,
-                                     self.z_mean, self.z_log_var)
+        self.loss_tensor = self.loss(self.outputs_tensor, self.y_placeholder)
 
         self.update_op_tensor = self.update_op(self.loss_tensor,
                                                self.learning_rate_placeholder)
@@ -25,107 +25,100 @@ class Vgg16(object):
         # Initialize all variables.
         self.session.run(tf.global_variables_initializer())
 
-    def build(self, rgb):
+    def build(self, X, keep_prob):
         """
         load variable from npy to build the VGG
         :param rgb: rgb image [batch, height, width, 3] values scaled [0, 1]
         """
 
         print("build model started")
-        rgb_scaled = rgb * 255.0
 
-        # Convert RGB to BGR
-        red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
-        assert red.get_shape().as_list()[1:] == [224, 224, 1]
-        assert green.get_shape().as_list()[1:] == [224, 224, 1]
-        assert blue.get_shape().as_list()[1:] == [224, 224, 1]
-        bgr = tf.concat(axis=3, values=[
-            blue - VGG_MEAN[0],
-            green - VGG_MEAN[1],
-            red - VGG_MEAN[2],
-        ])
-        assert bgr.get_shape().as_list()[1:] == [224, 224, 3]
+        conv1_1 = self.conv_layer(
+            X, name="conv1_1", kh=3, kw=3, n_out=64, dh=1, dw=1)
+        conv1_2 = self.conv_layer(
+            conv1_1, name="conv1_2", kh=3, kw=3, n_out=64, dh=1, dw=1)
+        pool1 = self.max_pool(conv1_2, name='pool1', kh=2, kw=2, dw=2, dh=2)
 
-        self.conv1_1 = self.conv_layer(bgr, "conv1_1")
-        self.conv1_2 = self.conv_layer(self.conv1_1, "conv1_2")
-        self.pool1 = self.max_pool(self.conv1_2, 'pool1')
+        conv2_1 = self.conv_layer(
+            pool1, name="conv2_1", kh=3, kw=3, n_out=128, dh=1, dw=1)
+        conv2_2 = self.conv_layer(
+            conv2_1, name="conv2_2", kh=3, kw=3, n_out=128, dh=1, dw=1)
+        pool2 = self.max_pool(conv2_2, name='pool2', kh=2, kw=2, dw=2, dh=2)
 
-        self.conv2_1 = self.conv_layer(self.pool1, "conv2_1")
-        self.conv2_2 = self.conv_layer(self.conv2_1, "conv2_2")
-        self.pool2 = self.max_pool(self.conv2_2, 'pool2')
+        conv3_1 = self.conv_layer(
+            pool2, name="conv3_1", kh=3, kw=3, n_out=256, dh=1, dw=1)
+        conv3_2 = self.conv_layer(
+            conv3_1, name="conv3_2", kh=3, kw=3, n_out=256, dh=1, dw=1)
+        conv3_3 = self.conv_layer(
+            conv3_2, name="conv3_3", kh=3, kw=3, n_out=256, dh=1, dw=1)
+        pool3 = self.max_pool(conv3_3, name='pool3', kh=2, kw=2, dw=2, dh=2)
 
-        self.conv3_1 = self.conv_layer(self.pool2, "conv3_1")
-        self.conv3_2 = self.conv_layer(self.conv3_1, "conv3_2")
-        self.conv3_3 = self.conv_layer(self.conv3_2, "conv3_3")
-        self.pool3 = self.max_pool(self.conv3_3, 'pool3')
+        conv4_1 = self.conv_layer(
+            pool3, name="conv4_1", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        conv4_2 = self.conv_layer(
+            conv4_1, name="conv4_2", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        conv4_3 = self.conv_layer(
+            conv4_2, name="conv4_3", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        pool4 = self.max_pool(conv4_3, name='pool4', kh=2, kw=2, dw=2, dh=2)
 
-        self.conv4_1 = self.conv_layer(self.pool3, "conv4_1")
-        self.conv4_2 = self.conv_layer(self.conv4_1, "conv4_2")
-        self.conv4_3 = self.conv_layer(self.conv4_2, "conv4_3")
-        self.pool4 = self.max_pool(self.conv4_3, 'pool4')
+        conv5_1 = self.conv_layer(
+            pool4, name="conv5_1", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        conv5_2 = self.conv_layer(
+            conv5_1, name="conv5_2", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        conv5_3 = self.conv_layer(
+            conv5_2, name="conv5_3", kh=3, kw=3, n_out=512, dh=1, dw=1)
+        pool5 = self.max_pool(conv5_3, name='pool5', kh=2, kw=2, dw=2, dh=2)
 
-        self.conv5_1 = self.conv_layer(self.pool4, "conv5_1")
-        self.conv5_2 = self.conv_layer(self.conv5_1, "conv5_2")
-        self.conv5_3 = self.conv_layer(self.conv5_2, "conv5_3")
-        self.pool5 = self.max_pool(self.conv5_3, 'pool5')
+        shp = pool5.get_shape()
+        flattened_shape = shp[1].value*shp[2].value*shp[3].value
+        resh = tf.reshape(pool5,[-1,flattened_shape],name='resh')
 
-        self.fc6 = self.fc_layer(self.pool5, "fc6")
-        assert self.fc6.get_shape().as_list()[1:] == [4096]
-        self.relu6 = tf.nn.relu(self.fc6)
+        fc6 = self.fc_layer(resh, name="fc6",n_out=4096)
+        relu6 = tf.nn.relu(fc6,name='relu6')
+        fc6_drop = tf.nn.dropout(relu6,keep_prob,name='drop6')
 
-        self.fc7 = self.fc_layer(self.relu6, "fc7")
-        self.relu7 = tf.nn.relu(self.fc7)
+        fc7 = self.fc_layer(fc6_drop, name="fc7",n_out=4096)
+        relu7 = tf.nn.relu(fc7,name='relu7')
+        fc7_drop = tf.nn.dropout(relu7,keep_prob,name='drop7')
 
-        self.fc8 = self.fc_layer(self.relu7, "fc8")
+        fc8 = self.fc_layer(fc7_drop, name="fc8",n_out=10)
 
-        self.prob = tf.nn.softmax(self.fc8, name="prob")
+        prob = tf.nn.softmax(fc8, name="prob")
 
-        self.data_dict = None
+        return prob
 
-    def max_pool(self, bottom, name):
-        return tf.nn.max_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+    def max_pool(self, input_op, name, kh, kw, dh, dw):
+        return tf.nn.max_pool(input_op, ksize=[1, kh, kw, 1], strides=[1, dh, dw, 1], padding='SAME', name=name)
 
-    def conv_layer(self, bottom, name):
+    def conv_layer(self, input_op, name, kh, kw, n_out, dh, dw):
+        n_in = input_op.get_shape()[-1].value
+
         with tf.variable_scope(name):
-            filt = self.get_conv_filter(name)
+            W = tf.get_variable('weights', shape=[
+                                kh, kw, n_in, n_out], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+            B = tf.get_variable('bias', shape=[
+                                n_out], dtype=tf.float32, initializer=tf.constant_initializer())
+            conv = tf.nn.conv2d(input_op, W, strides=[
+                                1, dh, dw, 1], padding='SAME') + B
+            activation = tf.nn.relu(conv)
 
-            conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
+        return activation
 
-            conv_biases = self.get_bias(name)
-            bias = tf.nn.bias_add(conv, conv_biases)
+    def fc_layer(self, input_op, name, n_out):
+        n_in = input_op.get_shape()[-1].value
 
-            relu = tf.nn.relu(bias)
-            return relu
-
-    def fc_layer(self, bottom, name):
         with tf.variable_scope(name):
-            shape = bottom.get_shape().as_list()
-            dim = 1
-            for d in shape[1:]:
-                dim *= d
-            x = tf.reshape(bottom, [-1, dim])
+            W = tf.get_variable('weights', shape=[
+                                n_in, n_out], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+            B = tf.get_variable('bias', shape=[
+                                n_out], dtype=tf.float32, initializer=tf.constant_initializer(value=0.1))
+            fc = tf.nn.bias_add(tf.matmul(input_op, W) + B)
 
-            weights = self.get_fc_weight(name)
-            biases = self.get_bias(name)
+        return fc
 
-            # Fully connected layer. Note that the '+' operation automatically
-            # broadcasts the biases.
-            fc = tf.nn.bias_add(tf.matmul(x, weights), biases)
-
-            return fc
-
-    def get_conv_filter(self, name):
-        return tf.constant(self.data_dict[name][0], name="filter")
-
-    def get_bias(self, name):
-        return tf.constant(self.data_dict[name][1], name="biases")
-
-    def get_fc_weight(self, name):
-        return tf.constant(self.data_dict[name][0], name="weights")
-
-
-    def loss(self, f, y):      
-        cross_entropy_loss = tf.nn.softmax_cross_entropy_with_logits(labels=y,logits=f)
+    def loss(self, f, y):
+        cross_entropy_loss = tf.nn.softmax_cross_entropy_with_logits(
+            labels=y, logits=f)
         return cross_entropy_loss
 
     def update_op(self, loss, learning_rate):
