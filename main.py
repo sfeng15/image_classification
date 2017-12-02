@@ -1,46 +1,36 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# ECE544 NA FA17 project Distracted Driver Action Recognition
+# vgg 16 implementation
+# author: Fangwen Wu
 
-import numpy as np
-from numpy import genfromtxt
-import skimage
-import os
-from skimage import io
-import csv
-import time
-import cv2
-import pickle
 import tensorflow as tf
 
-from utils import io_tools
 from utils import data_tools
-from models.vgg16 import vgg16
+from models.vgg16 import Vgg16
 from train_eval_model import train_model, eval_model
-
-flags = tf.app.flags
-FLAGS = flags.FLAGS
-flags.DEFINE_integer('num_epoch', 100, 'Number of epoch to run.')
-flags.DEFINE_string('model_type', 'vgg16', 'vgg16 or XX')
 
 
 def main(_):
-    # Get trainingdataset
-    io_tools.load_train()
-
-    # Data processing
-    data_tools.train_data_preprocessing
+    image_size = 224
+    learning_rate = 0.01
+    batch_size = 32
+    training_epoch = 1
+    keep_prob = 0.5
+    # Get training dataset and Data processing
+    #x_train, y_train = data_tools.read_and_normalize_train_data(
+    #    image_size, image_size)
 
     # Build model
-    model = vgg16()
+    model = Vgg16(image_size, image_size)
 
     # Start training
-    model = train_model()
+    model = train_model(model,learning_rate, batch_size,
+                        training_epoch, keep_prob)
 
     # Start testing
-    io_tools.load_test()
-    data_tools.test_data_preprocessing
-    eval_model()
+    #x_test, x_test_id = data_tools.read_and_normalize_test_data(
+    #    image_size, image_size)
+    #eval_model(model, x_test, x_test_id)
+
 
 if __name__ == "__main__":
     tf.app.run()

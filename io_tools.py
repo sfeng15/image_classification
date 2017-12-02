@@ -1,10 +1,9 @@
 """Input and output helpers to load in data.
 """
 import os
-import cv2
 import pickle
 import glob
-
+import cv2
 
 def read_image(path, rows, cols):
     img = cv2.imread(path)
@@ -12,10 +11,8 @@ def read_image(path, rows, cols):
     return resized
 
 
-def load_train(data_txt_file, image_data_path, rows, cols):
+def load_train(data_txt_file, image_data_path):
 
-    image_train = []
-    label_train = []
     print('Read drivers data')
 
     # get driver data
@@ -23,14 +20,7 @@ def load_train(data_txt_file, image_data_path, rows, cols):
     lines = f.readlines()[1:]
     f.close()
 
-    print('Read train image')
-    for line in lines:
-        line = line.strip()
-        path = image_data_path + '/' + \
-            str(line.split(',')[1]) + '/' + str(line.split(',')[2])
-        image_train.append(read_image(path, rows, cols))
-        label_train.append(int(line.split(',')[1][1]))
-    return image_train, label_train
+    return lines
 
 
 def load_test(rows, cols):
@@ -38,11 +28,14 @@ def load_test(rows, cols):
     path = os.path.join('..', 'data', 'test', '*.jpg')
     files = glob.glob(path)
     image_test = []
+    image_test_id = []
 
     for f in files:
+        fbase = os.path.basename(f)
         image_test.append(read_image(f, rows, cols))
+        image_test_id.append(fbase)
 
-    return image_test
+    return image_test, image_test_id
 
 
 def cache_data(data, path):

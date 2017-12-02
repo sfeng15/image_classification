@@ -8,19 +8,19 @@ class Vgg16(object):
         # Create session
         self.session = tf.Session()
         self.x_placeholder = tf.placeholder(tf.float32, [None, rows, cols, 3])
-        self.y_placeholder = tf.placeholder(tf.float32, [None, 1])
+        self.y_placeholder = tf.placeholder(tf.float32, [None, 10])
         self.learning_rate_placeholder = tf.placeholder(tf.float32, [])
         self.keep_prob_placeholder = tf.placeholder(tf.float32, [])
 
         # A boolean indicating whether the current mode is 'training'.
-        self.phase_train = True
+        self.phase_train = tf.placeholder(tf.bool,[])
 
         # Build graph.
-        self.outputs_tensor = self.build(
+        self.outputs_tensor, self.output_logits = self.build(
             self.x_placeholder, self.keep_prob_placeholder)
 
         # Setup loss tensor, accuracy_tensor, update_op_tensor
-        self.loss_tensor = self.loss(self.outputs_tensor, self.y_placeholder)
+        self.loss_tensor = self.loss(self.output_logits, self.y_placeholder)
         self.accuracy_tensor = self.accuracy(
             self.outputs_tensor, self.y_placeholder)
         self.update_op_tensor = self.update_op(self.loss_tensor,
@@ -32,7 +32,7 @@ class Vgg16(object):
 
         print("build model started")
         with tf.variable_scope('model'):
-            if not self.phase_train:
+            if self.phase_train == False:
                 tf.get_variable_scope().reuse_variables()
 
             conv1_1 = self.conv_layer(
@@ -88,11 +88,11 @@ class Vgg16(object):
             relu7 = tf.nn.relu(fc7, name='relu7')
             fc7_drop = tf.nn.dropout(relu7, keep_prob, name='drop7')
 
-            fc8 = self.fc_layer(fc7_drop, name="fc8", n_out=10)
+            logits = self.fc_layer(fc7_drop, name="fc8", n_out=10)
 
-            prob = tf.nn.softmax(fc8, name="prob")
+            prob = tf.nn.softmax(logits, name="prob")
 
-        return prob
+        return prob, logits
 
     def max_pool(self, input_op, name, kh, kw, dh, dw):
         return tf.nn.max_pool(input_op, ksize=[1, kh, kw, 1], strides=[1, dh, dw, 1], padding='SAME', name=name)
@@ -123,13 +123,13 @@ class Vgg16(object):
 
         return fc
 
-    def loss(self, f, y):
+    def loss(self, y_logits, y_label):
         cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-            labels=y, logits=f))
+            labels=y_label, logits=y_logits))
         return cross_entropy_loss
 
     def accuracy(self, f, y):
-        correct_prediction = tf.equal(tf.cast(tf.argmax(f, 1), tf.float32), y)
+        correct_prediction = tf.equal(tf.cast(tf.argmax(f, 1), tf.float32), tf.cast(tf.argmax(y, 1), tf.float32))
         prediction_accuracy = tf.reduce_mean(
             tf.cast(correct_prediction, tf.float32))
         return prediction_accuracy
