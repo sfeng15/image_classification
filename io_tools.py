@@ -5,7 +5,7 @@ import pickle
 import glob
 import cv2
 
-def read_image(path, rows, cols):
+def read_image(path, rows=224, cols=224):
     img = cv2.imread(path)
     resized = cv2.resize(img, (rows, cols))
     return resized
@@ -23,20 +23,12 @@ def load_train(data_txt_file, image_data_path):
     return lines
 
 
-def load_test(rows, cols):
+def load_test():
     print('Read test images')
-    path = os.path.join('..', 'data', 'test', '*.jpg')
+    path = os.path.join('.', 'data', 'test', '*.jpg')
     files = glob.glob(path)
-    image_test = []
-    image_test_id = []
 
-    for f in files:
-        fbase = os.path.basename(f)
-        image_test.append(read_image(f, rows, cols))
-        image_test_id.append(fbase)
-
-    return image_test, image_test_id
-
+    return files
 
 def cache_data(data, path):
     if not os.path.isdir('data/cache'):
