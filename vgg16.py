@@ -100,13 +100,7 @@ class Vgg16(object):
 
     def conv_layer(self, input_op, name, kh, kw, n_out, dh, dw):
         n_in = input_op.get_shape()[-1].value
-        #print('=========================================')
-        #print('=========================================')
-        #print('=========================================')        
-        #print(name, input_op.shape)
-        #print('=========================================')
-        #print('=========================================')
-        #print('=========================================')
+
         with tf.variable_scope(name):
             W = tf.get_variable('weights', shape=[
                                 kh, kw, n_in, n_out], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())

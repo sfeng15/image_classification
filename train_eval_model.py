@@ -5,7 +5,6 @@ import pandas as pd
 import datetime
 from utils import io_tools
 from random import shuffle
-import matplotlib.pyplot as plt
 import cv2
 
 
@@ -21,8 +20,8 @@ def train_model(model,learning_rate, batch_size,
 
     saver = tf.train.Saver()
     # load saved model if any
-    #if os.path.isfile('models/model.ckpt'):
-    #    load_path = saver.restore(model.session, 'models/model.ckpt')
+    if os.path.isfile('models/model.ckpt'):
+        load_path = saver.restore(model.session, 'models/model.ckpt')
 
     files = io_tools.load_train(
             data_txt_file, image_data_path)
@@ -53,7 +52,7 @@ def train_model(model,learning_rate, batch_size,
             batch_y = np.array(batch_y, dtype=np.float32)
 
             batch_y = tf.keras.utils.to_categorical(batch_y, 10)
-
+			
             mean_pixel = [103.939, 116.779, 123.68]
 
             for c in range(3):
@@ -84,17 +83,17 @@ def eval_model(model, batch_size=32):
     files = io_tools.load_test()
 
     N = len(files)
-    batch_num = N // batch_size
     yfull_test = np.zeros((N, 10))
     test_id = []
 
     print(N)
     
     # load model
+    '''
     saver = tf.train.Saver()
     if os.path.isfile('models/model.ckpt'):
         load_path = saver.restore(model.session, 'models/model.ckpt')
-
+    '''
     for i in range(0, N, batch_size):
         cur_batch_files = files[i: i+32]
         batch_x = []
@@ -110,7 +109,7 @@ def eval_model(model, batch_size=32):
             batch_x[:, :, :, c] = batch_x[:, :, :, c] - mean_pixel[c]
 
         prediction = model.session.run(model.outputs_tensor, feed_dict={
-            model.x_placeholder: batch_x, model.keep_prob_placeholder: 1})
+            model.x_placeholder: batch_x, model.keep_prob_placeholder: 1, model.phase_train: False})
         yfull_test[i:i+32, :] = prediction
 
         print("[%d/%d completed]"%(i, N))
